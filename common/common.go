@@ -1,6 +1,9 @@
 package common
 
 import (
+	"bytes"
+	"crypto/aes"
+	"crypto/rand"
 	"errors"
 	"math"
 	"strconv"
@@ -107,4 +110,134 @@ func Chunks(slice []byte, length int) ([][]byte, error) {
 		chunks[i] = slice[i*length : (i+1)*length]
 	}
 	return chunks, nil
+}
+
+// Pkcs7Padding takes a byte slice buffer and pads it to a specific blocksize using PKCS7 padding
+func Pkcs7Padding(buffer []byte, blocksize int) []byte {
+	diff := byte(blocksize - (len(buffer) % blocksize))
+	padding := make([]byte, diff)
+	for i := range padding {
+		padding[i] = diff
+	}
+	return append(buffer, padding...)
+}
+
+// DetectPkcs7Padding will return true if buffer is Pkcs7 padded, else false.
+func DetectPkcs7Padding(buffer []byte) bool {
+	lastByte := buffer[len(buffer)-1]
+	for i := 1; i <= int(lastByte); i++ {
+		if buffer[len(buffer)-i] != lastByte {
+			return false
+		}
+	}
+	return true
+}
+
+// StripPkcs7Padding will remove PKCS7 padding from the byte slice and return the unpadded bytes
+func StripPkcs7Padding(buffer []byte) ([]byte, error) {
+	lastByte := buffer[len(buffer)-1]
+	if DetectPkcs7Padding(buffer) == false {
+		return nil, errors.New("Invalid padding")
+	}
+	return buffer[:len(buffer)-int(lastByte)], nil
+}
+
+// AesEcbDecrypt will take a byte slice ciphertext and decrypt it using the byte slice key. It returns the plaintext as a byte slice
+func AesEcbDecrypt(ciphertext, key []byte) ([]byte, error) {
+	cipher, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	if len(ciphertext)%16 != 0 {
+		return nil, errors.New("Ciphertext has incorrect blocklength")
+	}
+	buffer := make([]byte, 16)
+	var plaintext []byte
+	blocks := len(ciphertext) / 16
+	for i := 0; i < blocks; i++ {
+		cipher.Decrypt(buffer, ciphertext[i*16:(i+1)*16])
+		plaintext = append(plaintext, buffer...)
+	}
+	return plaintext, nil
+}
+
+// AesEcbEncrypt will take a byte slice plaintext and encrypt it using the byte slice key. It returns the ciphertext as a byte slice
+func AesEcbEncrypt(plaintext, key []byte) ([]byte, error) {
+	cipher, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	if len(plaintext)%16 != 0 {
+		return nil, errors.New("AesEcbEncrypt: plaintext has incorrect length")
+	}
+	buffer := make([]byte, 16)
+	var ciphertext []byte
+	blocks := len(plaintext) / 16
+	for i := 0; i < blocks; i++ {
+		cipher.Encrypt(buffer, plaintext[i*16:(i+1)*16])
+		ciphertext = append(ciphertext, buffer...)
+	}
+	return ciphertext, nil
+}
+
+// AesCbcEncrypt encrypts a plaintext using AES in CBC mode
+func AesCbcEncrypt(plaintext, key, iv []byte) ([]byte, error) {
+	if len(plaintext)%16 != 0 {
+		return nil, errors.New("AesCbcEncrypt: plaintext has incorrect length")
+	}
+	buffer := make([]byte, 16)
+	var ciphertext []byte
+	blocks := len(plaintext) / 16
+	xor := iv
+	for i := 0; i < blocks; i++ {
+		var err error
+		buffer, err = AesEcbEncrypt(Xor(plaintext[i*16:(i+1)*16], xor), key)
+		if err != nil {
+			return nil, err
+		}
+		ciphertext = append(ciphertext, buffer...)
+		xor = buffer
+	}
+	return ciphertext, nil
+}
+
+// AesCbcDecrypt decrypts a ciphertext using AES in CBC mode
+func AesCbcDecrypt(ciphertext, key, iv []byte) ([]byte, error) {
+	if len(ciphertext)%16 != 0 {
+		return nil, errors.New("AesCbcEncrypt: ciphertext has incorrect length")
+	}
+	buffer := make([]byte, 16)
+	var plaintext []byte
+	blocks := len(ciphertext) / 16
+	xor := iv
+	for i := 0; i < blocks; i++ {
+		var err error
+		buffer, err = AesEcbDecrypt(ciphertext[i*16:(i+1)*16], key)
+		if err != nil {
+			return nil, err
+		}
+		buffer = Xor(buffer, xor)
+		plaintext = append(plaintext, buffer...)
+		xor = ciphertext[i*16 : (i+1)*16]
+	}
+	return plaintext, nil
+}
+
+// RandomBytes will generate num random bytes and return a byte slice
+func RandomBytes(num int) []byte {
+	buffer := make([]byte, num)
+	rand.Read(buffer)
+	return buffer
+}
+
+// HasDuplicateBlocks returns true if a duplicate block is found, else it returns false
+func HasDuplicateBlocks(blocks [][]byte) bool {
+	for chI := range blocks {
+		for k := chI + 1; k < len(blocks); k++ {
+			if bytes.Equal(blocks[chI], blocks[k]) {
+				return true
+			}
+		}
+	}
+	return false
 }

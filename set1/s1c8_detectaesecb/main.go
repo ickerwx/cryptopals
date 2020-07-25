@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -20,25 +19,15 @@ func main() {
 		c, _ := hex.DecodeString(scanner.Text())
 		ciphertexts = append(ciphertexts, c)
 	}
-	for cI:= range ciphertexts {
-		found := false
+	for cI := range ciphertexts {
 		chunks, err := common.Chunks(ciphertexts[cI], 16)
 		if err != nil {
 			panic(err)
 		}
-		for chI := range chunks {
-			if found {
-				continue
-			}
-			for k :=chI + 1; k < len(chunks); k++ {
-				if found {
-					continue
-				}
-				if bytes.Equal(chunks[chI], chunks[k]) {
-					fmt.Printf("ECB found at ciphertexts[%d]\n", cI)
-					fmt.Println(hex.EncodeToString(ciphertexts[cI]))
-					found = true
-				}
+		if common.HasDuplicateBlocks(chunks) {
+			fmt.Printf("Duplicate block detected in ciphertexts[%d]\n", cI)
+			for i := range chunks {
+				fmt.Println(chunks[i])
 			}
 		}
 	}

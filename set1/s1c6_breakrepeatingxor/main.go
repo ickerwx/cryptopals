@@ -33,21 +33,16 @@ func main() {
 		}
 	}
 	fmt.Println("Keysize is probably", keysize)
-	var transposed [][]byte
-	i := 0
-	// create a slice of byte slices with keysize elements
-	for i < keysize {
-		transposed = append(transposed, []byte{})
-		i++
-	}
+	transposed := make([][]byte, keysize)
+
 	// transpose the ciphertext
-	for i = range ciphertext {
+	for i := range ciphertext {
 		transposed[i%keysize] = append(transposed[i%keysize], ciphertext[i])
 	}
 
 	var key []byte
 
-	for i = range transposed {
+	for i := range transposed {
 		_, k := common.BreakSingleByteXor(transposed[i])
 		key = append(key, k)
 	}
