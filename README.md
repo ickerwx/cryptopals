@@ -18,3 +18,5 @@
 - [X]  Challenge 9 completed
 - [X] Challenge 10 completed
 - [X] Challenge 11 completed
+- [X] Challenge 12 completed
+- [X] Challenge 13 completed
