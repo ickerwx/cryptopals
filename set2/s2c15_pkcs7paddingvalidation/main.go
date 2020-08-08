@@ -7,10 +7,10 @@ import (
 )
 
 func main() {
-	text := "ICE ICE BABY"
+	text := []byte("ICE ICE BABY")
 
 	// this will work
-	b := append([]byte(text), []byte{4, 4, 4, 4}...)
+	b := append(text, []byte{4, 4, 4, 4}...)
 	result, err := common.StripPkcs7Padding(b)
 	if err != nil {
 		fmt.Println(err)
@@ -19,7 +19,7 @@ func main() {
 	}
 
 	// this will throw an error
-	b = append([]byte(text), []byte{5, 5, 5, 5}...)
+	b = append(text, []byte{5, 5, 5, 5}...)
 	result, err = common.StripPkcs7Padding(b)
 	if err != nil {
 		fmt.Println(err)
@@ -28,7 +28,7 @@ func main() {
 	}
 
 	// this will also throw an error
-	b = append([]byte(text), []byte{1, 2, 3, 4}...)
+	b = append(text, []byte{1, 2, 3, 4}...)
 	result, err = common.StripPkcs7Padding(b)
 	if err != nil {
 		fmt.Println(err)
