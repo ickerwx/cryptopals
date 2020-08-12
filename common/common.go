@@ -189,6 +189,7 @@ func AesCbcEncrypt(plaintext, key, iv []byte) ([]byte, error) {
 	var ciphertext []byte
 	blocks := len(plaintext) / 16
 	xor := iv
+	ciphertext = append(iv, ciphertext...)
 	for i := 0; i < blocks; i++ {
 		var err error
 		buffer, err = AesEcbEncrypt(Xor(plaintext[i*16:(i+1)*16], xor), key)
@@ -202,14 +203,15 @@ func AesCbcEncrypt(plaintext, key, iv []byte) ([]byte, error) {
 }
 
 // AesCbcDecrypt decrypts a ciphertext using AES in CBC mode
-func AesCbcDecrypt(ciphertext, key, iv []byte) ([]byte, error) {
+func AesCbcDecrypt(ciphertext, key []byte) ([]byte, error) {
 	if len(ciphertext)%16 != 0 {
 		return nil, errors.New("AesCbcEncrypt: ciphertext has incorrect length")
 	}
 	buffer := make([]byte, 16)
 	var plaintext []byte
+	xor := ciphertext[:16]
+	ciphertext = ciphertext[16:]
 	blocks := len(ciphertext) / 16
-	xor := iv
 	for i := 0; i < blocks; i++ {
 		var err error
 		buffer, err = AesEcbDecrypt(ciphertext[i*16:(i+1)*16], key)
