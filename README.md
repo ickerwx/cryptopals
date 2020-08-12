@@ -22,3 +22,4 @@
 - [X] Challenge 13 completed
 - [X] Challenge 14 completed
 - [X] Challenge 15 completed
+- [X] Challenge 16 completed
